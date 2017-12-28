@@ -4,6 +4,9 @@ import { Input } from '@angular/core';
 
 import { DishService } from '../services/dish.service';
 
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { Comment } from '../shared/comment';
+
 import { Params, ActivatedRoute } from '@angular/router';
 import { Location } from '@angular/common';
 import 'rxjs/add/operator/switchMap';
@@ -21,10 +24,80 @@ export class DishdetailComponent implements OnInit {
   dishIds: number[];
   prev: number;
   next: number;
+  commentForm: FormGroup;
+  comment: Comment;
+
+  formErrors = {
+    'author': '',
+    'rating': '',
+    'comment': ''
+  };
+
+  validationMessages = {
+    'author': {
+      'required': 'Author Name is required.',
+      'minlength': 'Author Name must be at least 2 characters long.'
+    },
+    'comment': {
+      'required': 'Comment is required.'
+    }
+  };
 
   constructor(private dishservice: DishService,
     private route: ActivatedRoute,
-    private location: Location) { }
+    private location: Location,
+    private fb: FormBuilder) {
+    this.createForm();
+  }
+
+  createForm() {
+    this.commentForm = this.fb.group({
+      author: ['', [Validators.required, Validators.minLength(2)]],
+      rating: 5,
+      comment: ['', [Validators.required]]
+    });
+
+    this.commentForm.valueChanges
+      .subscribe(data => this.onValueChanged(data));
+
+    this.onValueChanged(); // (re)set validation messages now
+  }
+
+  onValueChanged(data?: any) {
+    if (!this.commentForm) { return; }
+    const form = this.commentForm;
+    for (const field in this.formErrors) {
+      // clear previous error message (if any)
+      this.formErrors[field] = '';
+      const control = form.get(field);
+      if (control && control.dirty && !control.valid) {
+        const messages = this.validationMessages[field];
+        for (const key in control.errors) {
+          this.formErrors[field] += messages[key] + ' ';
+        }
+      }
+    }
+    if(form.valid){
+      this.comment = this.commentForm.value;
+    }
+    else{
+      this.comment = null;
+    }
+  }
+
+  onSubmit() {
+    let newDate = new Date();
+    this.comment = this.commentForm.value;
+    this.comment.date = newDate.toISOString();
+    this.dish.comments.push(this.comment);
+    this.comment = null;
+    this.commentForm.reset({
+      author: '',
+      rating: 5,
+      comment: ''
+    });
+  }
+
 
   ngOnInit() {
     this.dishservice.getDishIds().subscribe(dishIds => this.dishIds = dishIds);
