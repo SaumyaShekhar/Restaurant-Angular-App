@@ -1,6 +1,7 @@
 import { Component, OnInit , Inject} from '@angular/core';
 import { Dish } from '../shared/dish';
 import { Input } from '@angular/core';
+import { trigger, state, style, animate, transition } from '@angular/animations';
 
 import { DishService } from '../services/dish.service';
 
@@ -15,7 +16,20 @@ import 'rxjs/add/operator/switchMap';
 @Component({
   selector: 'app-dishdetail',
   templateUrl: './dishdetail.component.html',
-  styleUrls: ['./dishdetail.component.scss']
+  styleUrls: ['./dishdetail.component.scss'],
+  animations: [
+    trigger('visibility', [
+      state('shown', style({
+        transform: 'scale(1.0)',
+        opacity: 1
+      })),
+      state('hidden', style({
+        transform: 'scale(0.5)',
+        opacity: 0
+      })),
+      transition('* => *', animate('0.5s ease-in-out'))
+    ])
+  ]
 })
 
 export class DishdetailComponent implements OnInit {
@@ -28,6 +42,7 @@ export class DishdetailComponent implements OnInit {
   comment: Comment;
   errMess: string;
   dishcopy = null;
+  visibility = 'shown';
 
 
   formErrors = {
@@ -108,8 +123,8 @@ export class DishdetailComponent implements OnInit {
   ngOnInit() {
     this.dishservice.getDishIds().subscribe(dishIds => this.dishIds = dishIds);
     this.route.params
-      .switchMap((params: Params) => this.dishservice.getDish(+params['id']))
-      .subscribe(dish => { this.dish = dish; this.dishcopy = dish; this.setPrevNext(dish.id); },
+      .switchMap((params: Params) => { this.visibility = 'hidden'; return this.dishservice.getDish(+params['id']); })
+      .subscribe(dish => { this.dish = dish; this.dishcopy = dish; this.setPrevNext(dish.id); this.visibility = 'shown';},
       errmess => { this.dish = null; this.errMess = <any>errmess; });
   }
 
